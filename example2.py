@@ -29,3 +29,23 @@ with tf.Session() as sess:
 # 1
 # 2
 # 3
+
+input1 = tf.constant([3.0])
+input2 = tf.constant([2.0])
+input3 = tf.constant([5.0])
+intermed = tf.add(input2, input3)
+mul = tf.mul(input1, intermed)
+
+with tf.Session() as sess:
+  result = sess.run([mul, intermed])
+  print(result)
+
+input4 = tf.placeholder(tf.float32)
+input5 = tf.placeholder(tf.float32)
+output = tf.mul(input4, input5)
+
+with tf.Session() as sess:
+  print(sess.run([output], feed_dict={input4:[7.], input5:[2.]}))
+
+# output:
+# [array([ 14.], dtype=float32)]
