@@ -24,8 +24,8 @@ from __future__ import print_function
 import argparse
 import sys
 
-from tensorflow.examples.tutorials.mnist import input_data
-
+#from tensorflow.examples.tutorials.mnist import input_data
+import input_data
 import tensorflow as tf
 
 FLAGS = None
@@ -46,7 +46,8 @@ def max_pool_2x2(x):
 
 def main(_):
 	# Import data
-	mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
+	#mnist = input_data.read_data_sets(FLAGS.data_dir, one_hot=True)
+  	mnist = input_data.read_data_sets(one_hot=True)
 
 	# Create the model
 	x = tf.placeholder(tf.float32, [None, 784])
@@ -97,32 +98,71 @@ def main(_):
 
 
 	sess = tf.InteractiveSession()
-	tf.global_variables_initializer().run()
-	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y))
-	train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
-##  Train
-	for _ in range(1000):
-		batch_xs, batch_ys = mnist.train.next_batch(100)
-		sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
 
-#	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_conv, y_))
-#	train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-#	correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
+
+#	tf.global_variables_initializer().run()
+#	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y))
+#	train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)	
+#  Train
+#	for _ in range(1000):
+#		batch_xs, batch_ys = mnist.train.next_batch(100)
+#		sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
+#  Test trained model
+#	correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
 #	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-#	sess.run(tf.global_variables_initializer())
-#	for i in range(20000):
-#		batch = mnist.train.next_batch(50)
-#		if i%100 == 0:
-#			train_accuracy = accuracy.eval(feed_dict={x:batch[0], y_: batch[1], keep_prob: 1.0})
-#			print("step %d, training accuracy %g"%(i, train_accuracy))
-#		train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
-#
-#	print("test accuracy %g"%accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
+#	print(sess.run(accuracy, feed_dict={x: mnist.test.images,y_: mnist.test.labels}))
 
-# Test trained model
-	correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
+	cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_conv, y_))
+	train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+	correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-	print(sess.run(accuracy, feed_dict={x: mnist.test.images,y_: mnist.test.labels}))
+	
+	
+ 	W1_a = W_conv1                       # [5, 5, 1, 32]
+	W1pad= tf.zeros([5, 5, 1, 1])        # [5, 5, 1, 4]  - four zero kernels for padding
+	# We have a 6 by 6 grid of kernepl visualizations. yet we only have 32 filters
+	# Therefore, we concatenate 4 empty filters
+	W1_b = tf.concat(3, [W1_a, W1pad, W1pad, W1pad, W1pad])   # [5, 5, 1, 36]  
+	W1_c = tf.split(3, 36, W1_b)         # 36 x [5, 5, 1, 1]
+	W1_row0 = tf.concat(0, W1_c[0:6])    # [30, 5, 1, 1]
+	W1_row1 = tf.concat(0, W1_c[6:12])   # [30, 5, 1, 1]
+	W1_row2 = tf.concat(0, W1_c[12:18])  # [30, 5, 1, 1]
+	W1_row3 = tf.concat(0, W1_c[18:24])  # [30, 5, 1, 1]
+	W1_row4 = tf.concat(0, W1_c[24:30])  # [30, 5, 1, 1]
+	W1_row5 = tf.concat(0, W1_c[30:36])  # [30, 5, 1, 1]
+	W1_d = tf.concat(1, [W1_row0, W1_row1, W1_row2, W1_row3, W1_row4, W1_row5]) # [30, 30, 1, 1]
+	W1_e = tf.reshape(W1_d, [1, 30, 30, 1])
+  	Wtag = tf.placeholder(tf.string, None)
+  	imagemash_summary=tf.summary.image("Visualize_kernels", W1_e)
+
+	W_conv1_reshape=tf.reshape(W_conv1, [32, 5,5,1])
+	#W_conv2_reshape=tf.reshape(W_conv2, [64, 5,5,32])
+	image_summary_Wconv1 = tf.summary.image(W_conv1.name, W_conv1_reshape, max_outputs=3)
+	#image_summary_Wconv2 = tf.summary.image(W_conv2.name, W_conv2_reshape, max_outputs=3)
+	
+	loss_summary = tf.summary.scalar(cross_entropy.name, cross_entropy)
+
+	merged = tf.summary.merge_all()
+	sess.run(tf.global_variables_initializer())
+	summary_writer = tf.summary.FileWriter("folder_summary", sess.graph)
+		
+	for i in range(300):
+		batch = mnist.train.next_batch(50)
+		if i%100 == 0:
+			train_accuracy = accuracy.eval(feed_dict={x:batch[0], y_: batch[1], keep_prob: 1.0})
+			print("step %d, training accuracy %g"%(i, train_accuracy))
+		#train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+		#_,image_summ = sess.run([train_step,image_summary], feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+		#_,loss_summ = sess.run([train_step,loss_summary], feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+		#_,image_summ1,image_summ2,loss_summ = sess.run([train_step,image_summary_Wconv1,image_summary_Wconv2,loss_summary], feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
+		result=sess.run([train_step,merged], feed_dict={x:batch[0], y_:batch[1], keep_prob:0.5})
+		if i%100 == 0:
+			#summary_writer.add_summary(image_summ1,i)
+			#summary_writer.add_summary(image_summ2,i)	
+			#summary_writer.add_summary(loss_summ,i)
+			summary_writer.add_summary(result[1],i)
+			summary_writer.flush()
+	print("test accuracy %g"%accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
 
 	sess.close()
 if __name__ == '__main__':
