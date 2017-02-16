@@ -1,3 +1,4 @@
+	#W_conv2_reshape=tf.reshape(W_conv2, [64, 5,5,32])
 # -*- coding: utf-8 -*-
 """
 Created on Tue Mar 22 10:43:29 2016
