@@ -126,7 +126,7 @@ def main(_):
 	sess.run(tf.global_variables_initializer())
 	summary_writer = tf.summary.FileWriter("folder_summary", sess.graph)
 		
-	for i in range(500):
+	for i in range(10000):
 		batch = mnist.train.next_batch(50)
 		if i%100 == 0:
 			train_accuracy = accuracy.eval(feed_dict={x:batch[0], y_: batch[1], keep_prob: 1.0})
